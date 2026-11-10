@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Photo Report Maker</title>
+<style>
+:root{
+  --blue:#1677ff; --blue2:#0f5fcc; --bg:#f4f6f8; --ink:#111; --muted:#667085;
+  --line:#d0d5dd; --paper:#fff;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
+.top{
+  position:sticky;top:0;z-index:20;background:#fff;border-bottom:1px solid #e4e7ec;
+  box-shadow:0 2px 10px rgba(16,24,40,.05);padding:16px 18px;
+}
+.top h1{font-size:22px;margin:0 0 12px}
+.form{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:10px}
+.field label{display:block;font-size:12px;font-weight:700;color:#344054;margin:0 0 5px}
+.field input{width:100%;padding:10px 11px;border:1px solid var(--line);border-radius:8px;font-size:14px}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center}
+button{
+  border:0;border-radius:8px;padding:10px 14px;font-size:14px;font-weight:700;cursor:pointer
+}
+.primary{background:var(--blue);color:white}
+.primary:hover{background:var(--blue2)}
+.secondary{background:#eef2f6;color:#101828}
+.danger{background:#fee4e2;color:#b42318}
+#status{font-size:13px;color:var(--muted);margin-left:4px}
+
+.upload-wrap{max-width:1100px;margin:22px auto 8px;padding:0 16px}
+.dropzone{
+  background:#fff;border:2px dashed #98a2b3;border-radius:16px;min-height:180px;
+  display:flex;align-items:center;justify-content:center;text-align:center;padding:24px;
+  cursor:pointer;transition:.15s ease;
+}
+.dropzone:hover,.dropzone.drag{border-color:var(--blue);background:#f5f9ff}
+.dropzone .big{font-size:20px;font-weight:800;margin-bottom:7px}
+.dropzone .small{font-size:14px;color:var(--muted)}
+.dropzone .fakebtn{display:inline-block;margin-top:14px;background:var(--blue);color:#fff;padding:10px 16px;border-radius:8px;font-weight:700}
+input[type=file]{display:none}
+
+.thumbbar{
+  max-width:1100px;margin:12px auto 4px;padding:0 16px;
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;
+}
+.thumb{
+  position:relative;background:#fff;border:1px solid #e4e7ec;border-radius:10px;padding:6px;
+}
+.thumb img{width:100%;height:90px;object-fit:cover;border-radius:7px;display:block}
+.thumb .name{font-size:11px;color:#475467;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:5px}
+.thumb .remove{
+  position:absolute;right:4px;top:4px;width:24px;height:24px;border-radius:50%;
+  padding:0;background:rgba(0,0,0,.65);color:#fff;font-size:16px;line-height:24px;
+}
+#report{padding:18px 0 50px}
+.empty{width:210mm;max-width:95%;margin:35px auto;text-align:center;color:#667085}
+.page{
+  width:210mm;height:297mm;margin:0 auto 18px;background:#fff;position:relative;
+  box-shadow:0 2px 14px rgba(16,24,40,.12);padding:10mm 8mm 12mm;overflow:hidden;
+}
+.header{height:9mm;display:flex;justify-content:center;align-items:flex-start;text-align:center;font-size:10pt;padding-top:1mm}
+.grid{
+  height:252mm;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:repeat(3,1fr);
+  column-gap:5mm;row-gap:4mm
+}
+.photo-card{min-width:0;min-height:0;display:flex;flex-direction:column;align-items:center}
+.photo-frame{width:100%;height:calc(100% - 7mm);display:flex;align-items:center;justify-content:center;overflow:hidden}
+.photo-frame img{display:block;max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain}
+.caption{height:7mm;display:flex;align-items:center;justify-content:center;text-align:center;font-size:10pt;padding-top:1mm}
+.footer{
+  position:absolute;left:8mm;right:8mm;bottom:4.5mm;height:8mm;display:grid;
+  grid-template-columns:1fr 1.4fr 1fr;align-items:end;font-size:8pt
+}
+.left{text-align:left}.center{text-align:center;line-height:1.15}.right{text-align:right}
+
+@media(max-width:900px){
+  .form{grid-template-columns:1fr 1fr}
+  #report{overflow:auto;padding-left:10px;padding-right:10px}
+}
+@media print{
+  @page{size:A4 portrait;margin:0}
+  body{background:#fff}
+  .top,.upload-wrap,.thumbbar,.empty{display:none!important}
+  #report{padding:0;margin:0}
+  .page{margin:0;box-shadow:none;page-break-after:always;break-after:page}
+  .page:last-child{page-break-after:auto;break-after:auto}
+}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <h1>Photo Report Maker</h1>
+  <div class="form">
+    <div class="field">
+      <label>Property / Job Address</label>
+      <input id="address" placeholder="36 Myrtle Street North Sydney NSW 2060">
+    </div>
+    <div class="field">
+      <label>Report Number</label>
+      <input id="reportNo" placeholder="153813">
+    </div>
+    <div class="field">
+      <label>Company</label>
+      <input id="company" placeholder="Your Company">
+    </div>
+    <div class="field">
+      <label>Footer Line 2</label>
+      <input id="company2" placeholder="BUILDING ADVISORY">
+    </div>
+  </div>
+  <div class="actions">
+        <button class="danger" id="clearBtn">Clear photos</button>
+    <button class="primary" id="printBtn">Save as PDF</button>
+    <span id="status">No photos uploaded.</span>
+  </div>
+</div>
+
+<div class="upload-wrap">
+  <label class="dropzone" id="dropzone" for="photoInput">
+    <div>
+      <div class="big">Upload your photos here</div>
+      <div class="small">Click here and select as many photos as you want — or drag and drop them onto this box.</div>
+      <span class="fakebtn">Choose Photos</span>
+    </div>
+  </label>
+  <input id="photoInput" type="file" accept="image/*" multiple>
+</div>
+
+<div class="thumbbar" id="thumbbar"></div>
+
+<div id="report">
+  <div class="empty">Upload photos above to create your report automatically.</div>
+</div>
+
+<script>
+(() => {
+  const input = document.getElementById('photoInput');
+  const dropzone = document.getElementById('dropzone');
+  const thumbbar = document.getElementById('thumbbar');
+  const report = document.getElementById('report');
+  const status = document.getElementById('status');
+  const collator = new Intl.Collator(undefined,{numeric:true,sensitivity:'base'});
+
+  let items = []; // {file,id}
+  let urls = [];
+  let uid = 0;
+
+  function clearUrls(){ urls.forEach(URL.revokeObjectURL); urls=[]; }
+
+  function addFiles(fileList){
+    const incoming = Array.from(fileList).filter(f=>f.type.startsWith('image/'));
+    incoming.forEach(file=>items.push({file,id:++uid}));
+    items.sort((a,b)=>collator.compare(a.file.name,b.file.name));
+    renderAll();
+  }
+
+  function renderThumbs(){
+    thumbbar.innerHTML='';
+    items.forEach((item,idx)=>{
+      const card=document.createElement('div'); card.className='thumb';
+      const u=URL.createObjectURL(item.file); urls.push(u);
+      const img=document.createElement('img'); img.src=u;
+      const name=document.createElement('div'); name.className='name'; name.textContent=`${idx+1}. ${item.file.name}`;
+      const x=document.createElement('button'); x.className='remove'; x.textContent='×'; x.title='Remove';
+      x.onclick=(e)=>{e.preventDefault(); items=items.filter(v=>v.id!==item.id); renderAll();};
+      card.append(img,name,x); thumbbar.append(card);
+    });
+  }
+
+  function cap(item,index){
+    // Always use the photo's actual filename as the PDF caption.
+    // Remove only the final file extension, so e.g. "apple 2.jpg" becomes "apple 2".
+    return item.file.name.replace(/\.[^/.]+$/, '');
+  }
+
+  function renderReport(){
+    report.innerHTML='';
+    if(!items.length){
+      report.innerHTML='<div class="empty">Upload photos above to create your report automatically.</div>';
+      status.textContent='No photos uploaded.';
+      return;
+    }
+    const address=document.getElementById('address').value.trim();
+    const reportNo=document.getElementById('reportNo').value.trim();
+    const company=document.getElementById('company').value.trim();
+    const company2=document.getElementById('company2').value.trim();
+    const pages=Math.ceil(items.length/6);
+
+    for(let p=0;p<pages;p++){
+      const page=document.createElement('section'); page.className='page';
+      const header=document.createElement('div'); header.className='header'; header.textContent=address;
+      const grid=document.createElement('div'); grid.className='grid';
+
+      for(let s=0;s<6;s++){
+        const idx=p*6+s;
+        const card=document.createElement('div'); card.className='photo-card';
+        if(idx<items.length){
+          const frame=document.createElement('div'); frame.className='photo-frame';
+          const u=URL.createObjectURL(items[idx].file); urls.push(u);
+          const img=document.createElement('img'); img.src=u;
+          const caption=document.createElement('div'); caption.className='caption'; caption.textContent=cap(items[idx],idx);
+          frame.appendChild(img); card.append(frame,caption);
+        }
+        grid.appendChild(card);
+      }
+
+      const footer=document.createElement('div'); footer.className='footer';
+      footer.innerHTML=`
+        <div class="left">${reportNo ? 'Report no. '+escapeHtml(reportNo):''}</div>
+        <div class="center">${escapeHtml(company)}${company2?'<br>'+escapeHtml(company2):''}</div>
+        <div class="right"></div>
+      `;
+      page.append(header,grid,footer); report.appendChild(page);
+    }
+    status.textContent=`${items.length} photo${items.length===1?'':'s'} uploaded • ${pages} page${pages===1?'':'s'}`;
+  }
+
+  function escapeHtml(s){
+    return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+  }
+
+  function renderAll(){
+    clearUrls();
+    renderThumbs();
+    renderReport();
+  }
+
+  input.addEventListener('change',()=>{addFiles(input.files); input.value='';});
+
+  ['dragenter','dragover'].forEach(ev=>dropzone.addEventListener(ev,e=>{
+    e.preventDefault(); dropzone.classList.add('drag');
+  }));
+  ['dragleave','drop'].forEach(ev=>dropzone.addEventListener(ev,e=>{
+    e.preventDefault(); dropzone.classList.remove('drag');
+  }));
+  dropzone.addEventListener('drop',e=>addFiles(e.dataTransfer.files));
+
+  document.getElementById('clearBtn').onclick=()=>{items=[];renderAll();};
+  document.getElementById('printBtn').onclick=()=>{
+    if(!items.length){alert('Please upload photos first.');return;}
+    window.print();
+  };
+
+  ['address','reportNo','company','company2'].forEach(id=>{
+    document.getElementById(id).addEventListener('input',renderAll);
+  });
+
+  window.addEventListener('beforeunload',clearUrls);
+})();
+</script>
+</body>
+</html>
